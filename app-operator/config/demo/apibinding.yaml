@@ -1,0 +1,10 @@
+# Makes the App API exported from the root workspace available in the demo workspace.
+apiVersion: apis.kcp.io/v1alpha2
+kind: APIBinding
+metadata:
+  name: juiceshop.com
+spec:
+  reference:
+    export:
+      path: root
+      name: juiceshop.com

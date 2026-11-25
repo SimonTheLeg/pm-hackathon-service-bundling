@@ -56,3 +56,9 @@ tasks:
     deps: [codegen]
     cmds:
       - go run ./cmd {{.CLI_ARGS}}
+
+  demo:
+    desc: Demo on a local kcp - start kcp, export the App API, run the controller, create/delete/re-create the sample App
+    cmds:
+      - task: build
+      - ./hack/demo.sh

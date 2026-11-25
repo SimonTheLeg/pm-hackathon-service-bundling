@@ -35,3 +35,6 @@ go.work.sum
 
 # Build output
 bin/
+
+# Local kcp data directory (task demo)
+.kcp/
