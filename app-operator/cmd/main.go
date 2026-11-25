@@ -21,6 +21,8 @@ import (
 
 	"github.com/kcp-dev/multicluster-provider/apiexport"
 
+	cnpgv1 "github.com/cloudnative-pg/api/pkg/api/v1"
+
 	juiceshopv1alpha1 "github.com/platform-mesh/example-app-provider/api/v1alpha1"
 	"github.com/platform-mesh/example-app-provider/internal/controller"
 )
@@ -30,6 +32,7 @@ func init() {
 	runtime.Must(tenancyv1alpha1.AddToScheme(scheme.Scheme))
 	runtime.Must(apisv1alpha1.AddToScheme(scheme.Scheme))
 	runtime.Must(juiceshopv1alpha1.AddToScheme(scheme.Scheme))
+	runtime.Must(cnpgv1.AddToScheme(scheme.Scheme))
 }
 
 func main() {
