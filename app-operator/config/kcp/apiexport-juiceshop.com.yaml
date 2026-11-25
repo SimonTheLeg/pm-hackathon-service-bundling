@@ -1,0 +1,12 @@
+apiVersion: apis.kcp.io/v1alpha2
+kind: APIExport
+metadata:
+  name: juiceshop.com
+spec:
+  resources:
+  - group: juiceshop.com
+    name: apps
+    schema: v261125-d3f3f67.apps.juiceshop.com
+    storage:
+      crd: {}
+status: {}
