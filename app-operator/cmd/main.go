@@ -1,14 +1,10 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"os"
 
 	"github.com/spf13/pflag"
 
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -16,23 +12,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	mcbuilder "sigs.k8s.io/multicluster-runtime/pkg/builder"
 	mcmanager "sigs.k8s.io/multicluster-runtime/pkg/manager"
-	mcreconcile "sigs.k8s.io/multicluster-runtime/pkg/reconcile"
 
 	apisv1alpha1 "github.com/kcp-dev/sdk/apis/apis/v1alpha1"
 	corev1alpha1 "github.com/kcp-dev/sdk/apis/core/v1alpha1"
 	tenancyv1alpha1 "github.com/kcp-dev/sdk/apis/tenancy/v1alpha1"
 
 	"github.com/kcp-dev/multicluster-provider/apiexport"
+
+	juiceshopv1alpha1 "github.com/platform-mesh/example-app-provider/api/v1alpha1"
+	"github.com/platform-mesh/example-app-provider/internal/controller"
 )
 
 func init() {
 	runtime.Must(corev1alpha1.AddToScheme(scheme.Scheme))
 	runtime.Must(tenancyv1alpha1.AddToScheme(scheme.Scheme))
 	runtime.Must(apisv1alpha1.AddToScheme(scheme.Scheme))
+	runtime.Must(juiceshopv1alpha1.AddToScheme(scheme.Scheme))
 }
 
 func main() {
@@ -51,7 +48,6 @@ func main() {
 
 	cfg := ctrl.GetConfigOrDie()
 
-	// Setup a Manager, note that this not yet engages clusters, only makes them available.
 	entryLog.Info("Setting up manager")
 	opts := manager.Options{}
 
@@ -68,37 +64,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := mcbuilder.ControllerManagedBy(mgr).
-		Named("kcp-configmap-controller").
-		For(&corev1.ConfigMap{}).
-		Complete(mcreconcile.Func(
-			func(ctx context.Context, req mcreconcile.Request) (ctrl.Result, error) {
-				log := log.FromContext(ctx).WithValues("cluster", req.ClusterName)
-
-				cl, err := mgr.GetCluster(ctx, req.ClusterName)
-				if err != nil {
-					return reconcile.Result{}, fmt.Errorf("failed to get cluster: %w", err)
-				}
-				client := cl.GetClient()
-
-				// Retrieve the ConfigMap from the cluster.
-				s := &corev1.ConfigMap{}
-				if err := client.Get(ctx, req.NamespacedName, s); err != nil {
-					if apierrors.IsNotFound(err) {
-						// ConfigMap was deleted.
-						return reconcile.Result{}, nil
-					}
-					return reconcile.Result{}, fmt.Errorf("failed to get configmap: %w", err)
-				}
-
-				log.Info("Reconciling ConfigMap", "name", s.Name, "uuid", s.UID)
-				recorder := cl.GetEventRecorder("kcp-configmap-controller")
-				recorder.Eventf(s, nil, corev1.EventTypeNormal, "normal", "ConfigMap Reconciled", "ConfigMap %s reconciled", s.Name)
-
-				return reconcile.Result{}, nil
-			},
-		)); err != nil {
-		entryLog.Error(err, "failed to build controller")
+	if err := (&controller.AppReconciler{Manager: mgr}).SetupWithManager(mgr); err != nil {
+		entryLog.Error(err, "failed to build controller", "controller", "App")
 		os.Exit(1)
 	}
 

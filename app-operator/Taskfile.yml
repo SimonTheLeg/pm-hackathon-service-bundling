@@ -1,0 +1,50 @@
+version: "3"
+
+vars:
+  CONTROLLER_TOOLS_VERSION: v0.23.0
+  CONTROLLER_GEN: go run sigs.k8s.io/controller-tools/cmd/controller-gen@{{.CONTROLLER_TOOLS_VERSION}}
+
+tasks:
+  default:
+    desc: List available tasks
+    silent: true
+    cmds:
+      - task --list
+
+  codegen:
+    desc: Run all code generation (deepcopy + CRDs)
+    cmds:
+      - task: generate
+      - task: manifests
+
+  generate:
+    desc: Generate DeepCopy, DeepCopyInto and DeepCopyObject method implementations
+    cmds:
+      - '{{.CONTROLLER_GEN}} object paths="./..."'
+
+  manifests:
+    desc: Generate CustomResourceDefinitions into config/crd/bases
+    cmds:
+      - '{{.CONTROLLER_GEN}} crd paths="./..." output:crd:artifacts:config=config/crd/bases'
+
+  fmt:
+    desc: Run go fmt against code
+    cmds:
+      - go fmt ./...
+
+  vet:
+    desc: Run go vet against code
+    cmds:
+      - go vet ./...
+
+  build:
+    desc: Build the manager binary
+    deps: [codegen]
+    cmds:
+      - go build -o bin/manager ./cmd
+
+  run:
+    desc: Run the operator against the cluster in the current kubeconfig
+    deps: [codegen]
+    cmds:
+      - go run ./cmd {{.CLI_ARGS}}
